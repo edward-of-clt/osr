@@ -1,0 +1,29 @@
+body { background: #eee; }
+.center_page {
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+header {
+  width: 100vw;
+  background: #4b6cb7;
+  color: #fff;
+  padding: 5px;
+}
+
+header h3 { 
+  padding: 0px;
+  margin: 0px;
+}
+
+.project_list {
+  background: #fff;
+}
+
+.project_list .project, .project_list .repo {
+  border-bottom: solid 1px #ddd;
+  background: #fff;
+  padding: 14px;
+}

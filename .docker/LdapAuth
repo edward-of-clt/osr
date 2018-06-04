@@ -1,0 +1,11 @@
+FROM node:9.11.1-jessie
+
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+ARG NODE_ENV
+ENV NODE_ENV $NODE_ENV
+COPY . /usr/src/app/
+RUN npm install && npm cache clean --force
+
+CMD [ "npm", "test" ]

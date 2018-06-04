@@ -1,0 +1,60 @@
+<html>
+<head>
+<link rel="stylesheet" href="css/foundation.css">
+<link rel="stylesheet" href="css/app.css">
+<link href="css/standard.css" rel="stylesheet">
+<title>OSR Projects</title>
+</head>
+
+<body>
+  
+  <header>
+    <h3>OSR</h3>
+  </header>
+
+  <div class="project_list">
+
+  </div>
+  
+</body>
+
+<script src="js/vendor/jquery.js"></script>
+<script src="js/vendor/what-input.js"></script>
+<script src="js/vendor/foundation.js"></script>
+<script src="js/app.js"></script>
+<script>
+
+    var uniqrepos = {};
+
+    $.ajax({
+      method: "get",
+      url: "/v2/_catalog",
+      success: function(response) {
+
+        var repos = response.repositories;
+
+        $.each(repos,function(index,wholename) {
+          var wholename_split = wholename.split("/");
+          
+          if ( typeof uniqrepos[wholename_split[0]] != "object") {
+            uniqrepos[wholename_split[0]] = [wholename_split[1]];
+          } else {
+            uniqrepos[wholename_split[0]].push(wholename_split[1]);
+          }
+        });
+                
+        $.each(uniqrepos,function(index,project) {
+          $('.project_list').append('<div data-project="'+index+'" class="project">'+index+'</div>');
+        });
+      }
+    });
+
+    $('.project_list').on("click",".project",function() {
+      $('.project_list .project').remove();
+      $.each(uniqrepos[$(this).data('project')],function(index,repo) {
+          $('.project_list').append('<div class="repo">'+repo+'</div>');
+      });      
+    });
+  </script>
+  
+</html>
