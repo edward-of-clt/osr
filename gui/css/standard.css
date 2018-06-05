@@ -8,22 +8,80 @@ body { background: #eee; }
 
 header {
   width: 100vw;
-  background: #4b6cb7;
+  background: #1779ba;
   color: #fff;
+  padding: 10px;
+}
+
+.sidesidebar {
+  background: #eee;
   padding: 5px;
 }
 
-header h3 { 
+.dockerpull {
+  background: #ccc;
+  color: #333;
+  padding: 5px;
+}
+
+header h5 { 
   padding: 0px;
   margin: 0px;
 }
 
 .project_list {
   background: #fff;
+  border-left: 1px #ccc solid;
+  border-top: 1px #ccc solid;
 }
 
-.project_list .project, .project_list .repo {
+.info {
+  border-bottom: solid 1px #ddd;
+}
+
+.project_list .project, .project_list .repo, .project_list .tag {
   border-bottom: solid 1px #ddd;
   background: #fff;
   padding: 14px;
+  cursor: pointer;
+}
+.project_list .project:hover, .project_list .repo:hover, .project_list .tag:hover {
+  background: #f3f3f3;
+}
+
+.project_list .tag .fas {
+  color: #1779ba;
+}
+
+.sidebar .nav-item a {
+  display: block;
+  padding: 10px;
+  padding-left: 20px;
+}
+
+.layers .layer_sidebar .layer_link {
+  padding: 15px;
+  color: #333;
+  cursor: pointer;
+  border-bottom: solid 1px #ccc;
+  border-right: solid 1px #ccc;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.layers .layer_sidebar .layer_link:last-child {
+  border-bottom: 0px !important;
+}
+
+.layers .layer_sidebar .layer_link:hover {
+  background: #fefefe;
+}
+
+.layers .layer_sidebar {
+  overflow: auto;
+  background: #fcfcfc;
+}
+
+.layers .layer_sidebar .layer_link.active {
+  background: #eee;
 }

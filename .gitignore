@@ -1,3 +1,4 @@
 .vscode/*
 data/*
 auth/domain.*
+auth/nginx.conf

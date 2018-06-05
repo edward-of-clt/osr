@@ -3,18 +3,30 @@
 <link rel="stylesheet" href="css/foundation.css">
 <link rel="stylesheet" href="css/app.css">
 <link href="css/standard.css" rel="stylesheet">
-<title>OSR Projects</title>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+
+<title>Open Source Registry</title>
 </head>
 
 <body>
   
   <header>
-    <h3>OSR</h3>
+    <h5>OSR</h5>
   </header>
 
-  <div class="project_list">
-
-  </div>
+    <div class="grid-x grid-padding-x">
+      <div class="sidebar large-2 medium-3 small-12 hide-for-small">
+          <div class="nav-item"><a href="list.html"><i class="fas fa-project-diagram"></i> Projects</a></div>
+          <div class="nav-item"><a href="teams.html"><i class="fas fa-users"></i> Teams</a></div>
+          <div class="nav-item"><a href="users.html"><i class="fas fa-user"></i> Users</a></div>
+          <div class="nav-item"><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></div>
+      </div>
+      <div class="body_content large-10 medium-9 small-12">
+        <h3 class="subheader title">Projects</h3>
+        <div class="project_list">
+        </div>
+      </div>
+    </div>
   
 </body>
 
@@ -51,10 +63,150 @@
 
     $('.project_list').on("click",".project",function() {
       $('.project_list .project').remove();
+      var project = $(this).data('project');
       $.each(uniqrepos[$(this).data('project')],function(index,repo) {
-          $('.project_list').append('<div class="repo">'+repo+'</div>');
+          $('.project_list').append('<div data-repo="'+repo+'" data-project="'+project+'" class="repo">'+project+'/'+repo+'</div>');
       });      
+      $('h3.subheader.title').html('Project: '+project);
     });
+
+    $('.project_list').on("click",".repo",function() {
+        $('.project_list .repo').remove();
+        var project = $(this).data('project');
+        var repo = $(this).data('repo');
+        $('h3.subheader.title').html('Tags for '+project+'/'+repo);
+        $.ajax({
+          method: "get",
+          url: "/v2/"+project+"/"+repo+"/tags/list",
+          success: function(response) {
+            var tags = response.tags;
+            $.each(tags,function(index,tag) {
+              $('.project_list').append('<div data-repo="'+repo+'" data-tag="'+tag+'" data-project="'+project+'" class="tag"><i class="fas fa-plus-square"></i> '+project+'/'+repo+':'+tag+'</div>');
+            });
+          }
+        });
+    });
+
+    $(".project_list").on("click",".tag",function() {
+        // $('.project_list .tag').remove();      
+        var project = $(this).data('project');
+        var repo = $(this).data('repo');
+        var tag = $(this).data('tag');
+        var that = $(this);
+        $.ajax({
+          method: "get",
+          url: "/v2/"+project+"/"+repo+"/manifests/"+tag,
+          success: function(response) {
+            response = JSON.parse(response);
+            
+            if($('.project_list div[data-tag="'+tag+'"].info').length == 0) {
+              $('.project_list .tag[data-tag="'+tag+'"]').after('<div class="info grid-x" data-tag="'+tag+'"> \
+                  <div class="layers small-12 grid-x">\
+                  <div class="small-12 medium-2 layer_sidebar">\
+                    layer_sidebar \
+                  </div>\
+                  <div class="small-12 medium-6 text-center layer_description" data-stick-container>\
+                    <div class="align-center sticky small-12">Select a layer on the left to view its details</div>\
+                  </div>\
+                  <div class="sidesidebar medium-4"><div class="callout text-center">docker pull registry.theark.cloud/'+project+'/'+repo+':'+tag+'</div></div> \
+              </div>');
+              var info = $('.project_list div[data-tag="'+tag+'"].info');
+              info.hide();
+              info.find('.repo_name').html(response.name);
+              info.find('.arch').html(response.architecture);
+              info.find('.layers .layer_sidebar').empty();
+              
+              localStorage[tag] = JSON.stringify(response.history);
+
+              $.each(response.history,function(index,layer) {
+                layer.v1Compatibility = JSON.parse(layer.v1Compatibility);
+                
+                info.find('.layers .layer_sidebar').append('<div class="layer_link" data-tag="'+tag+'" data-id="'+index+'">'+layer.v1Compatibility.id+'</div>');
+              });
+              that.find('.fa-plus-square').removeClass('fa-plus-square').addClass('fa-minus-square');
+              info.slideDown(300);
+            } else {
+              that.find('.fa-minus-square').removeClass('fa-minus-square').addClass('fa-plus-square');
+              $('.project_list div[data-tag="'+tag+'"].info').slideUp(300,function() { $(this).remove(); });
+            }
+          }
+        });
+    });
+
+    $('.project_list').on("click",".layers .layer_sidebar .layer_link",function() {
+      $(this).parent('.layer_sidebar').find('.active').removeClass('active');
+      $(this).addClass('active');
+      var details = $(this).parents('.info').find('.layer_description');
+      var id = $(this).data('id');
+      var tag = $(this).data('tag');
+      var layer = JSON.parse(JSON.parse(localStorage[tag])[id].v1Compatibility);
+      console.log(layer);
+      details.removeClass('text-center').css({'padding-left':'20px'}).empty();
+      $.each(layers_valid_fields,function(label,attr) {
+        if (value = getNestedValue(layer,attr.location,0,attr.format)) {
+          if(typeof value == "object" && typeof value[0] == "object" && typeof value[0].outerHTML == "string") {
+            details.append('<div class="'+label+'"><strong>'+label+':</strong> '+value[0].outerHTML+'</div>');
+          } else if (typeof value == "object") {
+            details.append('<div class="'+label+'"><strong>'+label+':</strong> <pre style="margin-left: 15px;">'+JSON.stringify(value, null, 2)+'</pre></div>');
+          } else {
+            details.append('<div class="'+label+'"><strong>'+label+':</strong> '+value+'</div>');
+          }
+        }
+      });
+      
+    });
+
+    function getNestedValue(object,keys,i,wrap) {
+      
+      if((i+1) > keys.length) {
+        if(typeof wrap == "undefined") {
+          return object;
+        } else {
+          var ret = $('<'+wrap+'>');
+          ret.html(object);
+          return ret;
+        }
+      }
+
+      var value = object[keys[i]];
+      if (typeof value == "object") {
+        i++;
+        return getNestedValue(value,keys,i,wrap);
+      } else if (typeof value == "string") {
+        return value;
+      } else {
+        return false;
+      }
+      
+    }
+
+    var layers_valid_fields = {
+      "Date Created": {
+        "location": ["created"]
+      },
+      "Author": {
+        "location": ["author"],
+      },
+      "Command": {
+        "location": ["container_config", "Cmd"],
+        "format": "code"
+      },
+      "Architecture": {
+        "location": ["architecture"]
+      },
+      "Hostname": {
+        "location": ["config", "Hostname"]
+      },
+      "Health Check": {
+        "location": ["config", "Healthcheck"]
+      },
+      "Volumes": {
+        "location": ["config", "Volumes"]
+      },
+      "OS": {
+        "location": ["os"]
+      },
+    };
   </script>
   
 </html>
