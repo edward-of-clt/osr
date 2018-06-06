@@ -22,7 +22,7 @@
           <div class="nav-item"><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></div>
       </div>
       <div class="body_content large-10 medium-9 small-12">
-        <h3 class="subheader title">Projects</h3>
+        <h3 class="subheader title"><a href="javascript:;" class="init">All Projects</a></h3>
         <div class="project_list">
         </div>
       </div>
@@ -36,29 +36,42 @@
 <script src="js/app.js"></script>
 <script>
 
-    var uniqrepos = {};
+    var uniquerepos = {};
 
-    $.ajax({
-      method: "get",
-      url: "/v2/_catalog",
-      success: function(response) {
+    function _init() {
+      uniqrepos = {};
+      $.ajax({
+        method: "get",
+        url: "/v2/_catalog",
+        success: function(response) {
+          $('h3.subheader.title').html('<a href="javascript:;" class="init">All Projects</a>');
 
-        var repos = response.repositories;
+          $('.project_list *').remove();
+          var repos = response.repositories;
 
-        $.each(repos,function(index,wholename) {
-          var wholename_split = wholename.split("/");
-          
-          if ( typeof uniqrepos[wholename_split[0]] != "object") {
-            uniqrepos[wholename_split[0]] = [wholename_split[1]];
-          } else {
-            uniqrepos[wholename_split[0]].push(wholename_split[1]);
-          }
-        });
-                
-        $.each(uniqrepos,function(index,project) {
-          $('.project_list').append('<div data-project="'+index+'" class="project">'+index+'</div>');
-        });
-      }
+          $.each(repos,function(index,wholename) {
+            var wholename_split = wholename.split("/");
+            
+            if ( typeof uniqrepos[wholename_split[0]] != "object") {
+              uniqrepos[wholename_split[0]] = [wholename_split[1]];
+            } else {
+              uniqrepos[wholename_split[0]].push(wholename_split[1]);
+            }
+          });
+                  
+          $.each(uniqrepos,function(index,project) {
+            $('.project_list').append('<div data-project="'+index+'" class="project">'+index+'</div>');
+          });
+        }
+      });
+    }
+
+    $(document).ready(function() {
+      _init();
+    });
+
+    $(document).on("click",".init",function() {
+      _init();
     });
 
     $('.project_list').on("click",".project",function() {
@@ -67,21 +80,30 @@
       $.each(uniqrepos[$(this).data('project')],function(index,repo) {
           $('.project_list').append('<div data-repo="'+repo+'" data-project="'+project+'" class="repo">'+project+'/'+repo+'</div>');
       });      
-      $('h3.subheader.title').html('Project: '+project);
+      $('h3.subheader.title').html('<a href="javascript:;" class="init">All Projects</a> / '+project);
+    });
+
+    $('.subheader.title').on("click","a.jumptoproject",function() {
+      $('.project_list *').remove();
+      var project = $(this).data('project');
+      $.each(uniqrepos[$(this).data('project')],function(index,repo) {
+          $('.project_list').append('<div data-repo="'+repo+'" data-project="'+project+'" class="repo">'+project+'/'+repo+'</div>');
+      });      
+      $('h3.subheader.title').html('<a href="javascript:;" class="init">All Projects</a> / '+project);
     });
 
     $('.project_list').on("click",".repo",function() {
         $('.project_list .repo').remove();
         var project = $(this).data('project');
         var repo = $(this).data('repo');
-        $('h3.subheader.title').html('Tags for '+project+'/'+repo);
+        $('h3.subheader.title').html('<a href="javascript:;" class="init">All Projects</a> / <a href="javascript:;" class="jumptoproject" data-project="'+project+'">'+project+'</a> / '+repo);
         $.ajax({
           method: "get",
           url: "/v2/"+project+"/"+repo+"/tags/list",
           success: function(response) {
             var tags = response.tags;
             $.each(tags,function(index,tag) {
-              $('.project_list').append('<div data-repo="'+repo+'" data-tag="'+tag+'" data-project="'+project+'" class="tag"><i class="fas fa-plus-square"></i> '+project+'/'+repo+':'+tag+'</div>');
+              $('.project_list').append('<div data-repo="'+repo+'" data-tag="'+tag+'" data-project="'+project+'" class="tag"><i class="fas fa-plus-square"></i> '+tag+'</div>');
             });
           }
         });
@@ -98,17 +120,21 @@
           url: "/v2/"+project+"/"+repo+"/manifests/"+tag,
           success: function(response) {
             response = JSON.parse(response);
-            
+
             if($('.project_list div[data-tag="'+tag+'"].info').length == 0) {
               $('.project_list .tag[data-tag="'+tag+'"]').after('<div class="info grid-x" data-tag="'+tag+'"> \
+                  <div class="small-12 grid-x">\
+                    <div class="small-12 medium-6 text-center"><div style="background: #ddd; width: 100%; padding: 10px; text-align: center; font-family: Monospace, Courier New;">docker pull '+document.domain+'/'+project+'/'+repo+':'+tag+'</div></div> \
+                    <div class="small-12 medium-6 text-right" style="padding: 10px;"> \
+                    </div> \
+                  </div> \
                   <div class="layers small-12 grid-x">\
                   <div class="small-12 medium-2 layer_sidebar">\
                     layer_sidebar \
                   </div>\
-                  <div class="small-12 medium-6 text-center layer_description" data-stick-container>\
+                  <div class="small-12 medium-10 text-center layer_description" data-stick-container>\
                     <div class="align-center sticky small-12">Select a layer on the left to view its details</div>\
                   </div>\
-                  <div class="sidesidebar medium-4"><div class="callout text-center">docker pull registry.theark.cloud/'+project+'/'+repo+':'+tag+'</div></div> \
               </div>');
               var info = $('.project_list div[data-tag="'+tag+'"].info');
               info.hide();
@@ -117,6 +143,7 @@
               info.find('.layers .layer_sidebar').empty();
               
               localStorage[tag] = JSON.stringify(response.history);
+              console.log(response);
 
               $.each(response.history,function(index,layer) {
                 layer.v1Compatibility = JSON.parse(layer.v1Compatibility);
@@ -140,7 +167,6 @@
       var id = $(this).data('id');
       var tag = $(this).data('tag');
       var layer = JSON.parse(JSON.parse(localStorage[tag])[id].v1Compatibility);
-      console.log(layer);
       details.removeClass('text-center').css({'padding-left':'20px'}).empty();
       $.each(layers_valid_fields,function(label,attr) {
         if (value = getNestedValue(layer,attr.location,0,attr.format)) {
@@ -155,6 +181,35 @@
       });
       
     });
+
+    // $(document).on("click",".info a[data-delete]",function() {
+    //   if(confirm('Are you sure you want to delete this image?')) {
+    //     var that = $(this);
+    //     var tag = $(this).data('delete');
+    //     var project = $(this).data('project');
+    //     var repo = $(this).data('repo');
+    //     $.ajax({
+    //       method: "get",
+    //       url: "/v2/"+project+"/"+repo+"/manifests/"+tag,
+    //       beforeSend: function(request) {
+    //         request.setRequestHeader("Accept", "application/vnd.docker.distribution.manifest.v2+json");
+    //       },
+    //       success: function(data, textStatus, xhr) {
+    //         var digest = xhr.getResponseHeader('docker-content-digest');
+    //         $.ajax({
+    //             method: "delete",
+    //             url: "/v2/"+project+"/"+repo+"/manifests/"+digest,
+    //             success: function(data, textStatus, xhr) {
+    //               that.parents('.info').slideUp(function() { $(this).remove(); });
+    //               $('.info .tag[data-tag="'+tag+'"]').slideUp(function() { $(this).remove(); });
+    //             }
+    //           });
+    //         // that.parents('.info').slideUp(function() { $(this).remove(); });
+    //         // $('.info .tag[data-tag="'+tag+'"]').slideUp(function() { $(this).remove(); });
+    //       }
+    //     });
+    //   }
+    // });
 
     function getNestedValue(object,keys,i,wrap) {
       
