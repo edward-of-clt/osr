@@ -2,3 +2,4 @@
 data/*
 auth/domain.*
 auth/nginx.conf
+v1/*
